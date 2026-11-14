@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Room</title>
+</head>
+<body>
+
+<p>This is a {{ chat_room.name }} chatroom</p>
+{{ chat_room.slug | json_script:"json-chatroom" }}
+{{request.user.username | json_script:"json-username"}}
+
+
+<div id="chat-messages">
+
+    {% for message in messages %}
+        {{ message.user}}: {{ message.message }} <br>
+
+    {% endfor %}
+
+</div>
+
+
+<form action="" method="POST">
+
+    <input type="text" name="message" placeholder="Enter message" id="message-input">
+    <button id="send-button" type="submit">Send</button>
+</form>
+</body>
+</html>
+
+<script>
+
+
+    const username = JSON.parse(document.getElementById('json-username').textContent);
+    console.log(username)
+
+
+    const chatRoomSlug = JSON.parse(document.getElementById('json-chatroom').textContent);
+    const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/' + chatRoomSlug + '/');
+
+    chatSocket.onmessage = function (e){
+
+        const data = JSON.parse(e.data)
+
+        if(data.message)
+        {
+            console.log(data.message + "Received!")
+            document.getElementById('chat-messages').innerHTML += `<p><strong>${data.username}:</strong> ${data.message}</p>`
+
+
+        } else{
+            alert("The message was empty")
+        }
+
+    };
+
+    chatSocket.onclose = function () {
+        console.log("Closed")
+    }
+
+    document.getElementById('send-button').onclick = function (e) {
+        e.preventDefault();
+
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value
+
+
+        const data = JSON.stringify({
+            'message': message,
+            'username': username,
+            'room':chatRoomSlug
+        })
+
+        messageInput.value = ''
+        chatSocket.send(data)
+
+
+        console.log(message)
+
+
+    }
+
+</script>
